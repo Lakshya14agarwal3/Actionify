@@ -34,7 +34,9 @@ DISCUSSION_EXAMPLES = [
     "The client explained their feedback",
 ]
 
-embedding_model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
+LOCAL_MODEL_PATH = BASE_DIR / "backend" / "models" / "all-MiniLM-L6-v2"
+
+embedding_model = SentenceTransformer(str(LOCAL_MODEL_PATH))
 reference_texts = ACTION_EXAMPLES + DISCUSSION_EXAMPLES
 reference_embeddings = embedding_model.encode(reference_texts, normalize_embeddings=True)
 
