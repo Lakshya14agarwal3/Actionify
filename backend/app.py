@@ -16,53 +16,15 @@ app = Flask(
     static_folder=str(BASE_DIR / "frontend" / "static"),
 )
 
-ACTION_EXAMPLES = [
-    "Send the project update to the client",
-    "Someone will send the budget tomorrow",
-    "Someone needs to complete this task",
-    "Schedule the next team meeting",
-    "Prepare the presentation before Friday",
-    "Review the report and share feedback",
-    "Follow up with the vendor",
-    "Update the dashboard with the latest figures",
-    "Assign someone to finish this task",
-    "Lakshya will finalize the UI by October 5",
-    "Priya will draft the roadmap by October 3",
-    "Rahul will analyze GPU allocation by October 7",
-    "Sneha will prepare campaign assets by October 10",
-]
-
-DISCUSSION_EXAMPLES = [
-    "The team discussed the monthly results",
-    "Sales increased this quarter",
-    "The project status was shared",
-    "Everyone agreed with the proposed timeline",
-    "The client explained their feedback",
-    "The team reviewed the prototype progress",
-    "Backend integration is complete",
-    "Technical challenges were highlighted",
-    "Sneha outlined plans for LinkedIn campaigns and beta launch",
-    "The group agreed to prioritize workflow automation for Q4",
-]
-
 LOCAL_MODEL_PATH = BASE_DIR / "backend" / "models" / "all-MiniLM-L6-v2"
 
 embedding_model = SentenceTransformer(str(LOCAL_MODEL_PATH))
-reference_texts = ACTION_EXAMPLES + DISCUSSION_EXAMPLES
-reference_embeddings = embedding_model.encode(reference_texts, normalize_embeddings=True)
 
-# Tiny trained head (backend/train_classifier.py): logistic regression on frozen
-# MiniLM embeddings. ~2KB, committed to git, loaded offline. Falls back to
-# prototype matching if the file is missing.
+# Trained classifier head (backend/train_classifier.py): logistic regression on
+# frozen MiniLM embeddings. ~2KB, committed to git, loaded offline.
 ACTION_THRESHOLD = 0.5
-_action_head = None
-try:
-    _head_file = BASE_DIR / "backend" / "action_head.npz"
-    if _head_file.exists():
-        _head_data = np.load(_head_file)
-        _action_head = (_head_data["coef"].ravel(), float(_head_data["intercept"].ravel()[0]))
-except Exception:
-    _action_head = None
+_head_data = np.load(BASE_DIR / "backend" / "action_head.npz")
+_action_head = (_head_data["coef"].ravel(), float(_head_data["intercept"].ravel()[0]))
 
 
 def _head_probability(task_embedding):
@@ -120,12 +82,7 @@ def is_action_item(task):
     if DATE_BY_RE.search(task) and ACTION_VERB_RE.search(task):
         return True
     task_embedding = embedding_model.encode(task, normalize_embeddings=True)
-    if _action_head is not None:
-        return _head_probability(task_embedding) >= ACTION_THRESHOLD
-    scores = reference_embeddings @ task_embedding
-    action_score = float(max(scores[:len(ACTION_EXAMPLES)]))
-    discussion_score = float(max(scores[len(ACTION_EXAMPLES):]))
-    return action_score > discussion_score + 0.02 and action_score >= 0.25
+    return _head_probability(task_embedding) >= ACTION_THRESHOLD
 
 
 def find_owner(task):

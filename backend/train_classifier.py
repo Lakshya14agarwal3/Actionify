@@ -147,12 +147,36 @@ def metrics(y_true, y_pred):
 def main():
     from sklearn.linear_model import LogisticRegression
 
-    from backend.app import (
-        ACTION_EXAMPLES,
-        DISCUSSION_EXAMPLES,
-        embedding_model,
-        reference_embeddings,
-    )
+    from backend.app import embedding_model
+
+    # Baseline prototypes (the old app.py approach, kept here for comparison).
+    BASELINE_ACTIONS = [
+        "Send the project update to the client",
+        "Someone will send the budget tomorrow",
+        "Someone needs to complete this task",
+        "Schedule the next team meeting",
+        "Prepare the presentation before Friday",
+        "Review the report and share feedback",
+        "Follow up with the vendor",
+        "Update the dashboard with the latest figures",
+        "Assign someone to finish this task",
+        "Lakshya will finalize the UI by October 5",
+        "Priya will draft the roadmap by October 3",
+        "Rahul will analyze GPU allocation by October 7",
+        "Sneha will prepare campaign assets by October 10",
+    ]
+    BASELINE_DISCUSSION = [
+        "The team discussed the monthly results",
+        "Sales increased this quarter",
+        "The project status was shared",
+        "Everyone agreed with the proposed timeline",
+        "The client explained their feedback",
+        "The team reviewed the prototype progress",
+        "Backend integration is complete",
+        "Technical challenges were highlighted",
+        "Sneha outlined plans for LinkedIn campaigns and beta launch",
+        "The group agreed to prioritize workflow automation for Q4",
+    ]
 
     train, test = build_dataset()
     print(f"train={len(train)} test={len(test)}")
@@ -167,9 +191,10 @@ def main():
     X_test = embed([t for t, _ in test])
     y_test = np.array([y for _, y in test])
 
-    # Baseline: current prototype-max rule from app.py.
-    n_act = len(ACTION_EXAMPLES)
-    sims = X_test @ reference_embeddings.T
+    # Baseline: old prototype-max rule.
+    ref = embed(BASELINE_ACTIONS + BASELINE_DISCUSSION)
+    n_act = len(BASELINE_ACTIONS)
+    sims = X_test @ ref.T
     base_pred = (
         (sims[:, :n_act].max(axis=1) > sims[:, n_act:].max(axis=1) + 0.02)
         & (sims[:, :n_act].max(axis=1) >= 0.25)
