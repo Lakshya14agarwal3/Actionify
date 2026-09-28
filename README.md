@@ -1,4 +1,4 @@
-# Meeting Notes Planner
+# Actionify
 
 A small Flask project that turns meeting-note lines into a simple action plan.
 
